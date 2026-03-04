@@ -20,19 +20,27 @@ A scalable LMS with a **React** frontend and **Spring Boot** backend. Courses us
 ## Database (Aiven)
 
 - Connection is configured in `backend/src/main/resources/application.properties`.
-- Use environment variable `SPRING_DATASOURCE_PASSWORD` to override the password in production.
+- **Required:** Set the environment variable `SPRING_DATASOURCE_PASSWORD` to your Aiven PostgreSQL password before running the backend (the repo does not contain the password).
 - Ensure the machine running the backend has its IP allowed in the Aiven project allowlist.
 
 ## Run locally
 
 ### Backend
 
+Set your Aiven DB password, then run:
+
 ```bash
 cd backend
+# Windows PowerShell:
+$env:SPRING_DATASOURCE_PASSWORD="your-aiven-password"
+./mvnw.cmd spring-boot:run
+
+# Linux/macOS:
+export SPRING_DATASOURCE_PASSWORD=your-aiven-password
 ./mvnw spring-boot:run
 ```
 
-Runs on **http://localhost:8080**.
+Runs on **http://localhost:8081** (or 8080 if you set `server.port=8080`).
 
 ### Frontend
 
