@@ -5,6 +5,9 @@ frontend/node_modules/
 # Build outputs
 backend/target/
 frontend/dist/
+*.class
+*.jar
+*.war
 
 # IDE / OS
 .idea/
@@ -13,18 +16,18 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
-# Env / secrets (do not commit passwords)
+# Env and secrets (do not commit passwords)
 .env
 .env.local
-*.env.local
+*.env
 
 # Logs
 *.log
 npm-debug.log*
 
-# Maven wrapper (optional - we have it)
-# .mvn/wrapper/maven-wrapper.jar
-
 # Test / coverage
 coverage/
-*.lcov
+.nyc_output/
+
+# Maven wrapper jar (optional: some prefer to commit it)
+# .mvn/wrapper/maven-wrapper.jar
