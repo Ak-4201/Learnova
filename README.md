@@ -8,7 +8,7 @@ A scalable LMS with a **React** frontend and **Spring Boot** backend. Courses us
 - **Course listing**: Thumbnail, instructor, short description, Enroll / View details.
 - **Course details**: Description, what you'll learn, lesson count, duration, Enroll.
 - **Learning page**: YouTube iframe, lesson list sidebar, progress bar, Next/Previous, mark lesson completed, resume from last watched.
-- **Progress**: Percentage completed, completed lessons, last watched lesson; stored in DB and reflected in the UI.
+- **Progress tracking**: Progress bar and “X / Y completed (Z%)” on the Learning page; “Mark as completed” updates the backend and moves to the next lesson; completed lessons show a checkmark in the sidebar; resume from last watched lesson when re-opening a course; dashboard shows progress per enrolled course (completed lessons, percentage). All progress is stored in the backend (user, course, lesson, completed, last watched) and synced to the UI.
 - **Dashboard**: After login, shows welcome and enrolled courses with progress. Optional: set `VITE_DASHBOARD_CONTENT_URL` to embed an external URL in an iframe (see below).
 
 ## Tech Stack
@@ -23,6 +23,22 @@ A scalable LMS with a **React** frontend and **Spring Boot** backend. Courses us
 - Use environment variable `SPRING_DATASOURCE_PASSWORD` to override the password in production.
 - Ensure the machine running the backend has its IP allowed in the Aiven project allowlist.
 
+## API URL and environment (safe for Git)
+
+The frontend reads the backend API URL from an environment variable so you can push the repo without hardcoded URLs or secrets.
+
+1. **Copy the example env file** (do not commit your real `.env`):
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+2. **Edit `frontend/.env`** and set your backend URL:
+   ```env
+   VITE_API_URL=http://localhost:8081
+   ```
+   Use your backend’s URL (e.g. `http://localhost:8081` or your deployed backend URL). No trailing slash.
+3. `.env` is in `.gitignore`; only `.env.example` is committed. Never commit real passwords or production URLs.
+
 ## Run locally
 
 ### Backend
@@ -32,17 +48,18 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-Runs on **http://localhost:8080**.
+Runs on **http://localhost:8081** (or set `server.port` in `application.properties`).
 
 ### Frontend
 
 ```bash
 cd frontend
+cp .env.example .env   # first time only; set VITE_API_URL to your backend URL
 npm install
 npm run dev
 ```
 
-Runs on **http://localhost:5173** and proxies `/api` to the backend.
+Runs on **http://localhost:5173** and proxies `/api` to the URL in `VITE_API_URL`.
 
 ### Default users (seeded)
 
