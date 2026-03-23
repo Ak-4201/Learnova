@@ -1,0 +1,47 @@
+{
+  "format": "b2c",
+  "description": "Business-to-consumer catalog: canonical YouTube watch URLs per course for thumbnails and lesson playback.",
+  "version": "1",
+  "courses": [
+    {
+      "courseTitle": "Python for Beginners",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=kqtD5dpn9C8"
+    },
+    {
+      "courseTitle": "Advanced Python",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=QLTdOEn79Rc&list=PLqnslRFeH2UqLwzS0AwKDKLrpYBKzLBy2"
+    },
+    {
+      "courseTitle": "Fullstack using Python",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=aW9JI9ckVXY&list=PLErRD5SL6XcJ0s-CIJBIHyI0Cg6Ur0UTr"
+    },
+    {
+      "courseTitle": "Fullstack using Java",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=5PdEmeopJVQ"
+    },
+    {
+      "courseTitle": "MERN Stack Development",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=F9gB5b4jgOI"
+    },
+    {
+      "courseTitle": "Data Structures for Beginners",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=J2fol8eWo64"
+    },
+    {
+      "courseTitle": "Advanced DSA",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=RBSGKlAvoiM"
+    },
+    {
+      "courseTitle": "Machine Learning Fundamentals",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=i_LwzRVP7bg"
+    },
+    {
+      "courseTitle": "Java Backend Development",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=q6z_UCBM5Ek"
+    },
+    {
+      "courseTitle": "React Development",
+      "youtubeWatchUrl": "https://www.youtube.com/watch?v=0riHps91AzE"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "progress", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "lesson_id"})
+    @UniqueConstraint(columnNames = {"user_id", "course_id", "lesson_id"})
 })
 @Getter
 @Setter
@@ -20,25 +20,30 @@ public class Progress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User user;
+
+    @Column(name = "course_id", nullable = false)
+    private Long courseId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", insertable = false, updatable = false)
+    private Course course;
+
+    @Column(name = "lesson_id", nullable = false)
+    private Long lessonId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id", insertable = false, updatable = false)
     private Lesson lesson;
 
     @Column(nullable = false)
     private Boolean completed;
 
-    /** Last time user watched this lesson (for resume). */
+    @Column(name = "last_watched_at")
     private Instant lastWatchedAt;
-
-    @PrePersist
-    @PreUpdate
-    void lastWatchedAt() {
-        if (lastWatchedAt == null) {
-            lastWatchedAt = Instant.now();
-        }
-    }
 }

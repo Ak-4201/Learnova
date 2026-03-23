@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseDto {
+
     private Long id;
     private String title;
     private String description;
@@ -18,7 +19,7 @@ public class CourseDto {
     private String category;
     private String instructorName;
     private Long instructorId;
-    private Long totalLessons;
+    private Integer totalLessons;
     private Long totalDurationSeconds;
     private Boolean enrolled;
 }

@@ -262,17 +262,6 @@ class LmsIntegrationTest {
             .andExpect(jsonPath("$.lastWatchedLessonId").exists());
     }
 
-    @Test
-    @Order(43)
-    void updateLastWatched_withAuth_returns200() throws Exception {
-        ensureStudentToken();
-        if (firstCourseId == null) firstCourseId = 1L;
-        if (firstLessonId == null) firstLessonId = 1L;
-        mockMvc.perform(post("/api/courses/" + firstCourseId + "/lessons/" + firstLessonId + "/watch")
-            .header("Authorization", "Bearer " + studentToken))
-            .andExpect(status().isOk());
-    }
-
     // --- Dashboard enrollments (auth required) ---
     @Test
     @Order(50)

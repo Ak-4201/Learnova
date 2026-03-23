@@ -7,14 +7,17 @@ import lombok.Data;
 
 @Data
 public class SignupRequest {
+
     @NotBlank
     @Email
     private String email;
+
     @NotBlank
     @Size(min = 6)
     private String password;
+
     @NotBlank
-    @Size(min = 1, max = 100)
     private String fullName;
-    private String role; // STUDENT, INSTRUCTOR, ADMIN - default STUDENT
+
+    private String role; // optional: USER, ADMIN, INSTRUCTOR
 }

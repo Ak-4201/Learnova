@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { coursesApi, CourseDto } from '../api/courses';
 import { useAuth } from '../context/AuthContext';
 import styles from './CourseDetails.module.css';
 
-function formatDuration(seconds: number) {
-  if (!seconds) return '—';
+function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
@@ -13,112 +12,93 @@ function formatDuration(seconds: number) {
 }
 
 export default function CourseDetails() {
-  const { courseId } = useParams<{ courseId: string }>();
+  const { id } = useParams<{ id: string }>();
+  const { isAuthenticated } = useAuth();
   const [course, setCourse] = useState<CourseDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [enrolling, setEnrolling] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!courseId) return;
+    if (!id) return;
     coursesApi
-      .getById(Number(courseId))
+      .getById(Number(id))
       .then((res) => setCourse(res.data))
-      .catch(() => setCourse(null))
+      .catch(() => setError('Course not found.'))
       .finally(() => setLoading(false));
-  }, [courseId]);
+  }, [id]);
 
-  const handleEnroll = async () => {
-    if (!courseId || !isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+  const handleEnroll = () => {
+    if (!id || !isAuthenticated) return;
     setEnrolling(true);
-    try {
-      await coursesApi.enroll(Number(courseId));
-      const { data } = await coursesApi.getById(Number(courseId));
-      setCourse(data);
-      navigate(`/learn/${courseId}`);
-    } catch {
-      // already enrolled or error
-      const { data } = await coursesApi.getById(Number(courseId)).catch(() => ({ data: course }));
-      if (data) setCourse(data);
-    } finally {
-      setEnrolling(false);
-    }
+    setError('');
+    coursesApi
+      .enroll(Number(id))
+      .then(() => {
+        if (course) setCourse({ ...course, enrolled: true });
+      })
+      .catch((err: { response?: { status?: number } }) => {
+        setError(
+          err.response?.status === 404
+            ? 'Course not found.'
+            : 'Enrollment failed. Please log in again or try again.'
+        );
+      })
+      .finally(() => setEnrolling(false));
   };
 
-  if (loading || !course) {
-    return (
-      <div className={styles.wrap}>
-        <p className={styles.muted}>{loading ? 'Loading...' : 'Course not found.'}</p>
-      </div>
-    );
-  }
-
-  const learnUrl = `/learn/${courseId}`;
+  if (loading) return <div className={styles.msg}>Loading...</div>;
+  if (error || !course) return <div className={styles.error}>{error || 'Course not found.'}</div>;
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.hero}>
-        <div className={styles.thumbWrap}>
-          {course.thumbnailUrl ? (
-            <img src={course.thumbnailUrl} alt="" className={styles.thumb} />
-          ) : (
-            <div className={styles.thumbPlaceholder}>No thumbnail</div>
-          )}
-        </div>
-        <div className={styles.heroBody}>
-          <span className={styles.category}>{course.category || 'Course'}</span>
+    <div className={styles.page}>
+      <div className={styles.header}>
+        {course.thumbnailUrl && (
+          <img
+            key={`${course.id}-${course.thumbnailUrl}`}
+            src={course.thumbnailUrl}
+            alt=""
+            className={styles.thumb}
+          />
+        )}
+        <div className={styles.headerText}>
           <h1 className={styles.title}>{course.title}</h1>
-          <p className={styles.instructor}>Instructor: {course.instructorName || '—'}</p>
+          <p className={styles.instructor}>Instructor: {course.instructorName}</p>
           <p className={styles.meta}>
-            {course.totalLessons} lessons · {formatDuration(course.totalDurationSeconds || 0)} total
+            {course.totalLessons} lessons · {formatDuration(course.totalDurationSeconds || 0)}
           </p>
-          <div className={styles.actions}>
-            {course.enrolled ? (
-              <Link to={learnUrl} className={styles.btnPrimary}>
-                Go to course
-              </Link>
-            ) : (
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={handleEnroll}
-                disabled={enrolling}
-              >
-                {enrolling ? 'Enrolling...' : 'Enroll'}
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
-      <div className={styles.content}>
-        <section>
-          <h2 className={styles.sectionTitle}>Description</h2>
-          <p className={styles.desc}>
-            {course.description || 'No description provided.'}
-          </p>
-        </section>
-        {course.whatYouWillLearn && (
-          <section>
-            <h2 className={styles.sectionTitle}>What you will learn</h2>
-            <p className={styles.desc}>{course.whatYouWillLearn}</p>
-          </section>
+      <section className={styles.section}>
+        <h2>Description</h2>
+        <p className={styles.desc}>{course.description}</p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>What you will learn</h2>
+        <p className={styles.desc}>{course.whatYouWillLearn}</p>
+      </section>
+
+      <div className={styles.actions}>
+        {course.enrolled ? (
+          <Link to={`/courses/${course.id}/learn`} className={styles.primaryBtn}>
+            Go to course
+          </Link>
+        ) : isAuthenticated ? (
+          <button
+            type="button"
+            className={styles.primaryBtn}
+            onClick={handleEnroll}
+            disabled={enrolling}
+          >
+            {enrolling ? 'Enrolling...' : 'Enroll'}
+          </button>
+        ) : (
+          <Link to="/login" className={styles.primaryBtn}>
+            Log in to enroll
+          </Link>
         )}
-        <section>
-          <h2 className={styles.sectionTitle}>Course content</h2>
-          <p className={styles.muted}>
-            {course.totalLessons} lessons · {formatDuration(course.totalDurationSeconds || 0)}
-          </p>
-          {course.enrolled && (
-            <Link to={learnUrl} className={styles.btnSecondary}>
-              Start learning →
-            </Link>
-          )}
-        </section>
       </div>
     </div>
   );

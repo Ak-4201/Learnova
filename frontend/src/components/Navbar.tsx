@@ -1,57 +1,50 @@
 import { useState, useRef, useEffect } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import styles from './Layout.module.css';
+import styles from './Navbar.module.css';
 
-export default function Layout() {
+export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
-    };
+    }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
-    <div className={styles.layout}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
+    <nav className={styles.nav}>
+      <div className={styles.wrap}>
+        <Link to="/courses" className={styles.logo}>
           Learnova
         </Link>
-        <nav className={styles.nav}>
-          <Link to="/" className={styles.navLink}>Courses</Link>
-          {isAuthenticated && (
-            <Link to="/dashboard" className={styles.navLink}>Dashboard</Link>
-          )}
+        <div className={styles.right} ref={ref}>
           {!isAuthenticated ? (
-            <div className={styles.authBtns}>
-              <Link to="/login" className={styles.btnSecondary}>Login</Link>
-              <Link to="/signup" className={styles.btnPrimary}>Sign up</Link>
-            </div>
+            <>
+              <Link to="/login" className={styles.link}>Login</Link>
+              <Link to="/signup" className={styles.btn}>Sign up</Link>
+            </>
           ) : (
-            <div className={styles.profileWrap} ref={ref}>
+            <>
+              <Link to="/dashboard" className={styles.link}>Dashboard</Link>
               <button
                 type="button"
                 className={styles.profileBtn}
                 onClick={() => setDropdownOpen((o) => !o)}
                 aria-expanded={dropdownOpen}
               >
-                <span className={styles.avatar}>
-                  {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-                <span className={styles.profileName}>{user?.fullName}</span>
-                <span className={styles.chevron}>▼</span>
+                {user?.fullName || user?.email}
               </button>
               {dropdownOpen && (
                 <div className={styles.dropdown}>
-                  <div className={styles.dropdownUser}>
-                    <strong>{user?.fullName}</strong>
+                  <div className={styles.dropdownHeader}>
+                    {user?.fullName}
                     <span className={styles.dropdownEmail}>{user?.email}</span>
                   </div>
                   <Link
@@ -73,13 +66,10 @@ export default function Layout() {
                   </button>
                 </div>
               )}
-            </div>
+            </>
           )}
-        </nav>
-      </header>
-      <main className={styles.main}>
-        <Outlet />
-      </main>
-    </div>
+        </div>
+      </div>
+    </nav>
   );
 }

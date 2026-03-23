@@ -5,8 +5,8 @@ import com.learnova.dto.auth.LoginRequest;
 import com.learnova.dto.auth.SignupRequest;
 import com.learnova.entity.User;
 import com.learnova.repository.UserRepository;
-import com.learnova.security.UserPrincipal;
 import com.learnova.security.JwtTokenProvider;
+import com.learnova.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,49 +21,52 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider tokenProvider;
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new IllegalArgumentException("Email already in use");
         }
-        User.Role role = User.Role.STUDENT;
+        User.Role role = User.Role.USER;
         if (request.getRole() != null && !request.getRole().isBlank()) {
             try {
                 role = User.Role.valueOf(request.getRole().toUpperCase());
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+                // keep USER
+            }
         }
         User user = User.builder()
-            .email(request.getEmail())
-            .passwordHash(passwordEncoder.encode(request.getPassword()))
-            .fullName(request.getFullName())
-            .role(role)
-            .build();
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .role(role)
+                .build();
         user = userRepository.save(user);
-        String token = jwtTokenProvider.generateToken(user.getEmail());
-        return AuthResponse.builder()
-            .token(token)
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .role(user.getRole().name())
-            .userId(user.getId())
-            .build();
+        String token = tokenProvider.generateToken(
+                new UsernamePasswordAuthenticationToken(
+                        UserPrincipal.from(user), null, UserPrincipal.from(user).getAuthorities()));
+        return buildAuthResponse(user, token);
     }
 
     public AuthResponse login(LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        String token = jwtTokenProvider.generateToken(principal.getEmail());
-        User user = userRepository.findByEmail(principal.getEmail()).orElseThrow();
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String token = tokenProvider.generateToken(authentication);
+        return buildAuthResponse(user, token);
+    }
+
+    private AuthResponse buildAuthResponse(User user, String token) {
         return AuthResponse.builder()
-            .token(token)
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .role(user.getRole().name())
-            .userId(user.getId())
-            .build();
+                .token(token)
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole().name())
+                .userId(user.getId())
+                .build();
     }
 }

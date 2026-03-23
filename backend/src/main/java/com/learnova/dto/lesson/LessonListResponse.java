@@ -12,11 +12,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LessonListResponse {
+
     private Long courseId;
-    private List<LessonDto> lessons;
-    private Long totalLessons;
-    private Long completedCount;
-    private Integer progressPercent;
+    private List<LessonItemDto> lessons;
+    private int totalLessons;
+    private int progressPercent;
+    private int completedCount;
     private Long lastWatchedLessonId;
     private Boolean enrolled;
 }

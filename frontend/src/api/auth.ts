@@ -1,5 +1,3 @@
-import api from './client';
-
 export interface AuthUser {
   email: string;
   fullName: string;
@@ -15,10 +13,22 @@ export interface AuthResponse {
   userId: number;
 }
 
+import api from './client';
+
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<AuthResponse>('/auth/login', { email, password }),
 
-  signup: (email: string, password: string, fullName: string, role?: string) =>
-    api.post<AuthResponse>('/auth/signup', { email, password, fullName, role: role || 'STUDENT' }),
+  signup: (
+    email: string,
+    password: string,
+    fullName: string,
+    role?: string
+  ) =>
+    api.post<AuthResponse>('/auth/signup', {
+      email,
+      password,
+      fullName,
+      ...(role ? { role } : {}),
+    }),
 };

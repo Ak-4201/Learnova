@@ -20,19 +20,20 @@ public class Enrollment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
+    @Column(name = "course_id", nullable = false)
+    private Long courseId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
+    @JoinColumn(name = "course_id", insertable = false, updatable = false)
     private Course course;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "enrolled_at", nullable = false)
     private Instant enrolledAt;
-
-    @PrePersist
-    void enrolledAt() {
-        this.enrolledAt = Instant.now();
-    }
 }

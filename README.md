@@ -1,118 +1,147 @@
 # Learnova – Learning Management System
 
-A scalable LMS with a **React** frontend and **Spring Boot** backend. Courses use YouTube-embedded lessons; progress is tracked in the backend and synced to the UI.
+A scalable LMS with a React (Vite) frontend and Java Spring Boot backend. Users browse courses, enroll, and learn via YouTube-embedded lessons. Progress is tracked (percentage completed, completed lessons, resume from last watched). The backend handles JWT authentication, role-based access (Student/Instructor/Admin), course and lesson metadata, enrollment, and progress; the database stores only metadata (e.g. YouTube URLs), not video files.
 
-## Features
+## Overview
 
-- **Authentication**: Signup, Login, JWT, roles (Student / Instructor / Admin). Passwords stored as BCrypt hashes.
-- **Course listing**: Thumbnail, instructor, short description, Enroll / View details.
-- **Course details**: Description, what you'll learn, lesson count, duration, Enroll.
-- **Learning page**: YouTube iframe, lesson list sidebar, progress bar, Next/Previous, mark lesson completed, resume from last watched.
-- **Progress tracking**: Progress bar and “X / Y completed (Z%)” on the Learning page; “Mark as completed” updates the backend and moves to the next lesson; completed lessons show a checkmark in the sidebar; resume from last watched lesson when re-opening a course; dashboard shows progress per enrolled course (completed lessons, percentage). All progress is stored in the backend (user, course, lesson, completed, last watched) and synced to the UI.
-- **Dashboard**: After login, shows welcome and enrolled courses with progress. Optional: set `VITE_DASHBOARD_CONTENT_URL` to embed an external URL in an iframe (see below).
+Learnova provides course listing with search and category filter, course details (description, what you will learn, total lessons, duration), and a learning page with an embedded YouTube player, lesson list, progress bar, and Next/Previous navigation. Students mark lessons complete to advance; progress is persisted and the UI shows completion percentage and supports resuming from the last watched lesson. Authentication is JWT-based; passwords are hashed with BCrypt.
 
-## Tech Stack
+## Architecture
 
-- **Frontend**: React 18, Vite, React Router, Axios, CSS modules.
-- **Backend**: Java 17, Spring Boot 3, Spring Security, JWT (jjwt), JPA/Hibernate, PostgreSQL (Aiven).
-- **Database**: PostgreSQL on Aiven. Only metadata (e.g. YouTube URLs/IDs) is stored, not video files.
-
-## Database (Aiven)
-
-- Connection is configured in `backend/src/main/resources/application.properties`.
-- Use environment variable `SPRING_DATASOURCE_PASSWORD` to override the password in production.
-- Ensure the machine running the backend has its IP allowed in the Aiven project allowlist.
-
-## API URL and environment (safe for Git)
-
-The frontend reads the backend API URL from an environment variable so you can push the repo without hardcoded URLs or secrets.
-
-1. **Copy the example env file** (do not commit your real `.env`):
-   ```bash
-   cd frontend
-   cp .env.example .env
-   ```
-2. **Edit `frontend/.env`** and set your backend URL:
-   ```env
-   VITE_API_URL=http://localhost:8081
-   ```
-   Use your backend’s URL (e.g. `http://localhost:8081` or your deployed backend URL). No trailing slash.
-3. `.env` is in `.gitignore`; only `.env.example` is committed. Never commit real passwords or production URLs.
-
-## Run locally
-
-### Backend
-
-```bash
-cd backend
-./mvnw spring-boot:run
+```mermaid
+flowchart LR
+  subgraph client [Client]
+    Browser[Browser]
+  end
+  subgraph frontend [Frontend React]
+    Pages[Pages]
+    API[API Client]
+  end
+  subgraph backend [Backend Spring Boot]
+    Auth[Auth]
+    Courses[Courses]
+    Lessons[Lessons]
+    Progress[Progress]
+  end
+  subgraph db [Aiven PostgreSQL]
+    Tables[(Users, Courses, Sections, Lessons, Enrollments, Progress)]
+  end
+  Browser --> Pages
+  Pages --> API
+  API --> Auth
+  API --> Courses
+  API --> Lessons
+  API --> Progress
+  Auth --> Tables
+  Courses --> Tables
+  Lessons --> Tables
+  Progress --> Tables
 ```
 
-Runs on **http://localhost:8081** (or set `server.port` in `application.properties`).
+- **Frontend**: React (Vite), Axios, React Router. Displays courses and lessons, embeds YouTube via iframe, shows progress bar and percentage, calls REST APIs.
+- **Backend**: Spring Boot, MVC, JWT, JPA/Hibernate. REST APIs under `/api/*`; stateless sessions.
+- **Database**: PostgreSQL (Aiven). Tables: users, courses, sections, lessons, enrollments, progress.
 
-### Frontend
+See [docs/architecture.md](docs/architecture.md) for more detail.
 
-```bash
-cd frontend
-cp .env.example .env   # first time only; set VITE_API_URL to your backend URL
-npm install
-npm run dev
-```
+## API Endpoints
 
-Runs on **http://localhost:5173** and proxies `/api` to the URL in `VITE_API_URL`.
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/signup` | No | Register (fullName, email, password) |
+| POST | `/api/auth/login` | No | Login (email, password); returns JWT |
+| GET | `/api/courses` | Optional | List courses; query params: `search`, `category` |
+| GET | `/api/courses/{id}` | Optional | Course by id (enrolled flag when authenticated) |
+| POST | `/api/courses/{courseId}/enroll` | Yes | Enroll current user in course |
+| GET | `/api/courses/{courseId}/lessons` | Optional | Lesson list + progress + lastWatchedLessonId |
+| GET | `/api/lessons/{lessonId}` | No | Single lesson (e.g. YouTube URL) |
+| POST | `/api/courses/{courseId}/progress` | Yes | Record progress (lessonId, completed) |
+| GET | `/api/dashboard/enrollments` | Yes | Enrolled courses with progress for current user |
 
-### Default users (seeded)
+## Database Schema
 
-- **Student**: sign up from the UI (or use any email/password).
-- **Instructor**: `instructor@learnova.com` / `instructor123`
-- **Admin**: `admin@learnova.com` / `admin123`
+- **users**: id, email, password_hash, full_name, role (USER/ADMIN/INSTRUCTOR)
+- **courses**: id, title, description, what_you_will_learn, thumbnail_url, category, instructor_id
+- **sections**: id, course_id, title, order_number
+- **lessons**: id, section_id, title, order_number, youtube_url, duration_seconds
+- **enrollments**: id, user_id, course_id, enrolled_at (unique on user_id, course_id)
+- **progress**: id, user_id, course_id, lesson_id, completed, last_watched_at (unique on user_id, course_id, lesson_id)
 
-Seeded courses: Java Programming, Python for Beginners, Machine Learning Fundamentals, Web Development with React.
+Full DDL: [database/schema.sql](database/schema.sql).
 
-## Dashboard content from URL
+## Setup Instructions
 
-To show external content on the dashboard after login:
+**Prerequisites:** Node.js (v18+), Java 17+, Maven 3.8+, Aiven PostgreSQL (or compatible).
 
-1. Create `frontend/.env` (or `.env.local`):
-   ```env
-   VITE_DASHBOARD_CONTENT_URL=https://example.com/your-page
-   ```
-2. Restart the frontend dev server.
-3. The dashboard will render an iframe with that URL above “My courses”.
+1. **Database (Aiven)**  
+   Create a PostgreSQL service. Add your **backend server’s public IP** to the service **allowlist**. Connection format:  
+   `postgres://avnadmin:PASSWORD@HOST:PORT/defaultdb?sslmode=require`  
+   Do not commit the password; use environment variables.
 
-If `VITE_DASHBOARD_CONTENT_URL` is not set, the dashboard only shows the welcome message and enrolled courses.
+2. **Backend**  
+   - In `backend/`, set the DB password:  
+     `set SPRING_DATASOURCE_PASSWORD=your_aiven_password` (Windows) or  
+     `export SPRING_DATASOURCE_PASSWORD=...` (Unix/macOS).  
+   - Run: `mvn spring-boot:run`  
+   - Server runs on **8081**. JPA `ddl-auto=update` creates/updates tables. Seed data (10 courses) runs on first startup if the DB is empty.
 
-## API overview
+3. **Frontend**  
+   - In `frontend/`: `npm install` then `npm run dev`  
+   - App: **http://localhost:5173**  
+   - Optional: copy `.env.example` to `.env` and set `VITE_API_URL` (default `http://localhost:8081/api`).
 
-- `POST /api/auth/signup` – Register (body: email, password, fullName, role?)
-- `POST /api/auth/login` – Login (body: email, password)
-- `GET /api/courses` – List courses (optional auth for enrolled flag)
-- `GET /api/courses/:id` – Course details (optional auth)
-- `GET /api/courses/:id/lessons` – All lessons for course (optional auth for progress)
-- `GET /api/lessons/:id` – Single lesson (e.g. YouTube URL)
-- `POST /api/courses/:id/enroll` – Enroll (auth required)
-- `POST /api/courses/:id/progress` – Mark lesson completed (auth, body: lessonId, completed)
-- `POST /api/courses/:id/lessons/:lessonId/watch` – Update last watched (auth)
-- `GET /api/dashboard/enrollments` – My enrolled courses with progress (auth)
+See [docs/setup.md](docs/setup.md) for step-by-step setup.
 
-## Project structure
+## Ports
+
+- Backend: **8081**
+- Frontend dev: **5173**
+
+## Security and configuration
+
+- **Passwords**: BCrypt hashes only; never store plain text.
+- **JWT**: Set `learnova.jwt.secret` (and optionally expiration) in production; do not commit secrets.
+- **CORS**: Configure allowed origins (e.g. `learnova.cors.allowed-origins`) for your frontend URL.
+- **Secrets**: Use `.env` (frontend) and `SPRING_DATASOURCE_PASSWORD` (backend); both are in `.gitignore`. Use `.env.example` as a template.
+
+## Scalability
+
+- **Stateless backend**: JWT allows horizontal scaling of API servers.
+- **Database**: Use connection pooling (default in Spring Boot); consider read replicas for heavy read traffic.
+- **Frontend/backend split**: Deploy separately; put frontend behind CDN for static assets.
+- **Future**: Cache course list (e.g. Redis), serve thumbnails via CDN, optional rate limiting.
+
+## B2C course YouTube catalog (backend)
+
+Canonical **business-to-consumer** YouTube links live in JSON (not hard-coded only in Java):
+
+- **[backend/src/main/resources/b2c/course-youtube-urls.json](backend/src/main/resources/b2c/course-youtube-urls.json)** — `format: "b2c"`, one `youtubeWatchUrl` per `courseTitle` (playlist URLs allowed; primary video id drives the thumbnail).
+- On startup, **DataSeeder** uses this file when creating courses (thumbnails from `img.youtube.com/vi/{id}/mqdefault.jpg`).
+- **B2cCourseMediaSyncRunner** re-applies URLs and thumbnails to existing rows so updates to the JSON file take effect after restart without wiping the database.
+
+To change a course’s video or card image, edit the JSON and restart the backend.
+
+## Repository structure
 
 ```
 Learnova/
-├── backend/           # Spring Boot
-│   └── src/main/java/com/learnova/
-│       ├── config/    # Security, CORS, DataSeeder
-│       ├── controller/
-│       ├── dto/
-│       ├── entity/
-│       ├── repository/
-│       ├── security/   # JWT, UserPrincipal
-│       └── service/
-├── frontend/          # React + Vite
-│   └── src/
-│       ├── api/
-│       ├── components/
-│       ├── context/
-│       └── pages/
-└── README.md
+  frontend/       # React (Vite) app
+  backend/        # Spring Boot app
+  backend/src/main/resources/b2c/   # B2C YouTube URL catalog (JSON)
+  database/       # schema.sql
+  docs/           # architecture.md, setup.md
+  README.md
 ```
+
+## After code changes (if the UI still looks old)
+
+1. **Restart the backend** so `DataSeeder` + **B2C sync** run again (`B2cCourseMediaSyncRunner` applies `b2c/course-youtube-urls.json` on every startup). From `backend/`: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"` or `.\start-local.ps1`.
+2. **Rebuild** if you use a production frontend bundle: `cd frontend && npm run build` (then re-serve `dist/`).
+3. **Hard refresh** the browser (Ctrl+F5) or disable cache in DevTools so course list JSON and thumbnails are not stale.
+
+## Features
+
+- **Auth**: Signup, login, JWT, roles (USER, ADMIN, INSTRUCTOR).
+- **Courses**: List with search and category filter; details (thumbnail, instructor, description, what you’ll learn, lesson count, duration); enrollment.
+- **Lessons**: Sections and lessons with YouTube URL; progress (completed, %, last watched); Learning page with iframe, sidebar, Next/Previous, Mark as complete.
+- **Dashboard**: “My learning” (enrolled courses + progress) and “Browse courses” (same listing as Courses page).

@@ -16,23 +16,22 @@ public class Lesson {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "section_id", nullable = false)
+    private Long sectionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id", insertable = false, updatable = false)
+    private Section section;
+
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(name = "order_number", nullable = false)
     private Integer orderNumber;
 
-    /**
-     * YouTube video URL or video ID (e.g. dQw4w9WgXcQ).
-     * Backend stores only this; frontend embeds via iframe.
-     */
-    @Column(name = "youtube_url", nullable = false, length = 500)
+    @Column(name = "youtube_url")
     private String youtubeUrl;
 
-    /** Duration in seconds (optional, for display). */
+    @Column(name = "duration_seconds")
     private Integer durationSeconds;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "section_id", nullable = false)
-    private Section section;
 }

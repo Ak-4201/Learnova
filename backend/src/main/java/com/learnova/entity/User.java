@@ -3,7 +3,6 @@ package com.learnova.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,22 +22,15 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(nullable = false)
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @OneToMany(mappedBy = "instructor", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Course> courses = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -49,13 +41,8 @@ public class User {
     private List<Progress> progressRecords = new ArrayList<>();
 
     public enum Role {
-        STUDENT,
-        INSTRUCTOR,
-        ADMIN
-    }
-
-    @PrePersist
-    void createdAt() {
-        this.createdAt = Instant.now();
+        USER,
+        ADMIN,
+        INSTRUCTOR
     }
 }

@@ -19,18 +19,21 @@ public class Section {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "course_id", nullable = false)
+    private Long courseId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", insertable = false, updatable = false)
+    private Course course;
+
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(name = "order_number", nullable = false)
     private Integer orderNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
     @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderNumber ASC")
+    @OrderBy("orderNumber")
     @Builder.Default
     private List<Lesson> lessons = new ArrayList<>();
 }

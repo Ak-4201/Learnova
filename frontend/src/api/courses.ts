@@ -14,8 +14,14 @@ export interface CourseDto {
   enrolled: boolean;
 }
 
+export interface ListCoursesParams {
+  search?: string;
+  category?: string;
+}
+
 export const coursesApi = {
-  list: () => api.get<CourseDto[]>('/courses'),
+  list: (params?: ListCoursesParams) =>
+    api.get<CourseDto[]>('/courses', { params: params ?? {} }),
   getById: (id: number) => api.get<CourseDto>(`/courses/${id}`),
   enroll: (courseId: number) => api.post(`/courses/${courseId}/enroll`),
 };

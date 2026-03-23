@@ -3,7 +3,6 @@ package com.learnova.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,33 +25,27 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "what_you_will_learn", columnDefinition = "TEXT")
     private String whatYouWillLearn;
 
-    @Column(length = 500)
+    @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
-    @Column(length = 100)
     private String category;
 
+    @Column(name = "instructor_id", nullable = false)
+    private Long instructorId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "instructor_id", nullable = false)
+    @JoinColumn(name = "instructor_id", insertable = false, updatable = false)
     private User instructor;
 
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt;
-
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderNumber ASC")
+    @OrderBy("orderNumber")
     @Builder.Default
     private List<Section> sections = new ArrayList<>();
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Enrollment> enrollments = new ArrayList<>();
-
-    @PrePersist
-    void createdAt() {
-        this.createdAt = Instant.now();
-    }
 }

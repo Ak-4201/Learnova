@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Auth.module.css';
 
@@ -8,8 +8,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (searchParams.get('session') === 'expired') {
+      setError('Your session expired. Please log in again.');
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [searchParams]);
 
   if (isAuthenticated) {
     navigate('/dashboard', { replace: true });

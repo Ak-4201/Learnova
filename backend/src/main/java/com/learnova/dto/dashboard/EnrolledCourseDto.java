@@ -1,4 +1,4 @@
-package com.learnova.dto.course;
+package com.learnova.dto.dashboard;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,11 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnrolledCourseDto {
+
     private Long courseId;
     private String title;
-    private String thumbnailUrl;
-    private Integer progressPercent;
-    private Long completedLessons;
-    private Long totalLessons;
-    private Long lastWatchedLessonId;
+    private int progressPercent;
+    private int completedLessons;
+    private int totalLessons;
 }

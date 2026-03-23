@@ -10,9 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProgressResponse {
+
     private Long lessonId;
     private Boolean completed;
-    private Long completedCount;
-    private Long totalLessons;
-    private Integer progressPercent;
+    private int completedCount;
+    private int totalLessons;
+    private int progressPercent;
 }

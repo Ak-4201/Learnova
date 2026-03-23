@@ -1,9 +1,6 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
-const baseURL =
-  typeof import.meta.env.VITE_API_URL !== 'undefined' && import.meta.env.VITE_API_URL !== ''
-    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-    : '/api';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
 
 const api = axios.create({
   baseURL,
@@ -18,15 +15,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// On 401/403 (expired or invalid token), clear session and redirect to login so errors don't repeat
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
+  (response) => response,
+  (error: AxiosError) => {
+    const status = error.response?.status;
+    const url = typeof error.config?.url === 'string' ? error.config.url : '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/signup');
+
+    if ((status === 401 || status === 403) && !isAuthEndpoint) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.dispatchEvent(new Event('storage'));
+      window.location.href = '/login?session=expired';
     }
-    return Promise.reject(err);
+    return Promise.reject(error);
   }
 );
 

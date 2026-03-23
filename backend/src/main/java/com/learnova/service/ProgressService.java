@@ -4,17 +4,17 @@ import com.learnova.dto.progress.ProgressRequest;
 import com.learnova.dto.progress.ProgressResponse;
 import com.learnova.entity.Lesson;
 import com.learnova.entity.Progress;
-import com.learnova.entity.User;
 import com.learnova.repository.EnrollmentRepository;
 import com.learnova.repository.LessonRepository;
 import com.learnova.repository.ProgressRepository;
-import com.learnova.repository.UserRepository;
+import com.learnova.repository.SectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,68 +22,77 @@ public class ProgressService {
 
     private final ProgressRepository progressRepository;
     private final LessonRepository lessonRepository;
-    private final UserRepository userRepository;
+    private final SectionRepository sectionRepository;
     private final EnrollmentRepository enrollmentRepository;
 
-    /**
-     * Mark lesson as completed and update last watched. Returns updated progress stats.
-     */
     @Transactional
     public ProgressResponse recordProgress(Long userId, Long courseId, ProgressRequest request) {
-        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new RuntimeException("Not enrolled in this course");
-        }
         Lesson lesson = lessonRepository.findById(request.getLessonId())
-            .orElseThrow(() -> new RuntimeException("Lesson not found"));
-        if (!lesson.getSection().getCourse().getId().equals(courseId)) {
-            throw new RuntimeException("Lesson does not belong to this course");
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        Long sectionId = lesson.getSectionId();
+        if (sectionId == null || !belongsToCourse(sectionId, courseId)) {
+            throw new RuntimeException("Lesson does not belong to course");
         }
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-
-        Progress progress = progressRepository.findByUserIdAndLessonId(userId, lesson.getId())
-            .orElse(Progress.builder()
-                .user(user)
-                .lesson(lesson)
-                .completed(false)
-                .build());
-        progress.setLastWatchedAt(Instant.now());
-        if (Boolean.TRUE.equals(request.getCompleted())) {
-            progress.setCompleted(true);
+        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new RuntimeException("Not enrolled in course");
+        }
+        Optional<Progress> existing = progressRepository.findByUserIdAndCourseIdAndLessonId(userId, courseId, request.getLessonId());
+        Progress progress;
+        if (existing.isPresent()) {
+            progress = existing.get();
+            progress.setCompleted(progress.getCompleted() || request.isCompleted());
+            progress.setLastWatchedAt(Instant.now());
+        } else {
+            progress = Progress.builder()
+                    .userId(userId)
+                    .courseId(courseId)
+                    .lessonId(request.getLessonId())
+                    .completed(request.isCompleted())
+                    .lastWatchedAt(Instant.now())
+                    .build();
         }
         progressRepository.save(progress);
-
-        long total = lessonRepository.countByCourseId(courseId);
-        long completedCount = progressRepository.findCompletedByUserIdAndCourseId(userId, courseId).size();
-        int percent = total == 0 ? 0 : (int) Math.round(100.0 * completedCount / total);
-
+        int totalLessons = countLessonsInCourse(courseId);
+        int completedCount = (int) progressRepository.countByUserIdAndCourseIdAndCompletedTrue(userId, courseId);
+        int progressPercent = totalLessons > 0 ? (completedCount * 100 / totalLessons) : 0;
         return ProgressResponse.builder()
-            .lessonId(lesson.getId())
-            .completed(progress.getCompleted())
-            .completedCount(completedCount)
-            .totalLessons(total)
-            .progressPercent(percent)
-            .build();
+                .lessonId(request.getLessonId())
+                .completed(progress.getCompleted())
+                .completedCount(completedCount)
+                .totalLessons(totalLessons)
+                .progressPercent(progressPercent)
+                .build();
     }
 
-    /**
-     * Update last watched (e.g. when user switches lesson) without marking completed.
-     */
     @Transactional
-    public void updateLastWatched(Long userId, Long lessonId) {
-        Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
-        if (lesson == null) return;
-        Long courseId = lesson.getSection().getCourse().getId();
+    public void updateLastWatched(Long userId, Long courseId, Long lessonId) {
         if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) return;
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return;
+        Optional<Progress> opt = progressRepository.findByUserIdAndCourseIdAndLessonId(userId, courseId, lessonId);
+        Progress p;
+        if (opt.isPresent()) {
+            p = opt.get();
+            p.setLastWatchedAt(Instant.now());
+        } else {
+            p = Progress.builder()
+                    .userId(userId)
+                    .courseId(courseId)
+                    .lessonId(lessonId)
+                    .completed(false)
+                    .lastWatchedAt(Instant.now())
+                    .build();
+        }
+        progressRepository.save(p);
+    }
 
-        Progress progress = progressRepository.findByUserIdAndLessonId(userId, lessonId)
-            .orElse(Progress.builder()
-                .user(user)
-                .lesson(lesson)
-                .completed(false)
-                .build());
-        progress.setLastWatchedAt(Instant.now());
-        progressRepository.save(progress);
+    private boolean belongsToCourse(Long sectionId, Long courseId) {
+        return sectionRepository.findById(sectionId)
+                .map(s -> s.getCourseId().equals(courseId))
+                .orElse(false);
+    }
+
+    private int countLessonsInCourse(Long courseId) {
+        return sectionRepository.findByCourseIdOrderByOrderNumberAsc(courseId).stream()
+                .mapToInt(s -> lessonRepository.findBySectionIdOrderByOrderNumberAsc(s.getId()).size())
+                .sum();
     }
 }

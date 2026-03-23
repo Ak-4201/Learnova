@@ -20,7 +20,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
         try {
             return ResponseEntity.ok(authService.signup(request));
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
     }
